@@ -1,0 +1,133 @@
+#（一区）=============================（clash配置）
+#dns可自行修改
+port: 7890
+allow-lan: true
+mode: rule
+log-level: info
+unified-delay: true
+global-client-fingerprint: chrome
+dns:
+  enable: true
+  listen: :53
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  default-nameserver: 
+    - 223.5.5.5
+    - 8.8.8.8
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+  fallback:
+    - https://1.0.0.1/dns-query
+    - tls://dns.google
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+
+
+#（二区）==============================（代理协议）
+#当前12个协议节点配置模版，按需求修改，如某协议节点不用，则无需删除，确保三区代理分流中没有该name节点名称即可
+proxies:
+- name: vless-reality-vision-clash-ipv6-ubuntu
+  type: vless
+  server: 172.188.57.82
+  port: 52610
+  uuid: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  network: tcp
+  udp: true
+  tls: true
+  flow: xtls-rprx-vision
+  servername: www.yahoo.com
+  reality-opts:
+    public-key: ut_DHvp4d0YK0Y1n62g34W108yUzi5I43KwfPCoqC3Y
+    short-id: 2ec6bb81
+  client-fingerprint: chrome
+
+- name: vmess-ws-clash-ipv6-ubuntu
+  type: vmess
+  server: 172.188.57.82
+  port: 42518
+  uuid: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  alterId: 0
+  cipher: auto
+  udp: true
+  tls: false
+  network: ws
+  servername: www.bing.com
+  ws-opts:
+    path: "c2a6b236-7ddf-482b-bab7-9fc5c786b215-vm"
+    headers:
+      Host: www.bing.com
+
+- name: hysteria2-clash-ipv6-ubuntu
+  type: hysteria2
+  server: 172.188.57.82
+  port: 36400
+  password: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  alpn:
+    - h3
+  sni: www.bing.com
+  skip-cert-verify: true
+  fast-open: true
+
+- name: tuic5-clash-ipv6-ubuntu
+  server: 172.188.57.82
+  port: 20905
+  type: tuic
+  uuid: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  password: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  alpn: [h3]
+  disable-sni: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+  sni: www.bing.com
+  skip-cert-verify: true
+
+
+
+proxy-groups:
+- name: 负载均衡
+  type: load-balance
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  strategy: round-robin
+  proxies:
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - vmess-ws-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+
+- name: 自动选择
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  tolerance: 50
+  proxies:
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - vmess-ws-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+- name: 🌍选择代理节点
+  type: select
+  proxies:
+    - 负载均衡
+    - 自动选择
+    - DIRECT
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - vmess-ws-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+
+#（四区）==============================（代理规则）
+#代理规则可自行添加 
+rules:
+  - GEOIP,LAN,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,🌍选择代理节点
