@@ -1,0 +1,147 @@
+﻿allow-lan: true
+mixed-port: 7890
+unified-delay: false
+tcp-concurrent: true
+external-controller: 0.0.0.0:9090
+external-ui: ui
+
+find-process-mode: strict
+global-client-fingerprint: chrome
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+sniffer:
+  enable: true
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+tun:
+  enable: true
+  stack: mixed
+  dns-hijack:
+    - "any:53"
+  auto-route: true
+  auto-detect-interface: true
+
+dns:
+  enable: true
+  ipv6:  false 
+  listen: :1053
+  enhanced-mode: fake-ip
+  fake-ip-range: 28.0.0.1/8
+  fake-ip-filter:
+    - "*"
+    - "+.lan"
+    - "+.local"
+  default-nameserver:
+    - 223.5.5.5
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+  nameserver-policy:
+    "geosite:private":
+      - https://doh.pub/dns-query
+      - https://dns.alidns.com/dns-query
+
+  fallback:
+    - tls://1.1.1.1:853
+    - tls://1.0.0.1:853
+    - 101.6.6.6:5353
+
+
+
+proxies:
+- name: vless-reality-vision-clash-ipv6-ubuntu
+  type: vless
+  server: 172.188.57.82
+  port: 52610
+  uuid: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  network: tcp
+  udp: true
+  tls: true
+  flow: xtls-rprx-vision
+  servername: www.yahoo.com
+  reality-opts:
+    public-key: ut_DHvp4d0YK0Y1n62g34W108yUzi5I43KwfPCoqC3Y
+    short-id: 2ec6bb81
+  client-fingerprint: chrome
+
+
+- name: hysteria2-clash-ipv6-ubuntu
+  type: hysteria2
+  server: 172.188.57.82
+  port: 36400
+  password: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  alpn:
+    - h3
+  sni: www.bing.com
+  skip-cert-verify: true
+  fast-open: true
+
+- name: tuic5-clash-ipv6-ubuntu
+  server: 172.188.57.82
+  port: 20905
+  type: tuic
+  uuid: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  password: c2a6b236-7ddf-482b-bab7-9fc5c786b215
+  alpn: [h3]
+  disable-sni: true
+  reduce-rtt: true
+  udp-relay-mode: native
+  congestion-controller: bbr
+  sni: www.bing.com
+  skip-cert-verify: true
+
+
+
+proxy-groups:
+- name: 负载均衡
+  type: load-balance
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  strategy: round-robin
+  proxies:
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+
+- name: 自动选择
+  type: url-test
+  url: https://www.gstatic.com/generate_204
+  interval: 300
+  tolerance: 50
+  proxies:
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+
+- name: 🌍选择代理节点
+  type: select
+  proxies:
+    - 负载均衡
+    - 自动选择
+    - DIRECT
+    - vless-reality-vision-clash-ipv6-ubuntu
+    - hysteria2-clash-ipv6-ubuntu
+    - tuic5-clash-ipv6-ubuntu
+
+#（四区）==============================（代理规则）
+#代理规则可自行添加 
+rules:
+  - GEOIP,LAN,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,🌍选择代理节点
+
